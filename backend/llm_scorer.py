@@ -106,14 +106,22 @@ def score_by_llm(text: str) -> Optional[AnalyzeResponse]:
         logger.error("解析通义千问响应为 JSON 失败：%s", e)
         return None
 
-    # 通义千问典型响应结构：output.choices[0].message.content
+    # 通义千问响应结构可能有多种格式：
+    # 1. output.text（新格式，直接包含 JSON 字符串）
+    # 2. output.choices[0].message.content（旧格式）
     raw_content = None
     try:
         output = data.get("output") or {}
-        choices = output.get("choices") or []
-        if choices:
-            message = choices[0].get("message") or {}
-            raw_content = message.get("content")
+        
+        # 优先尝试新格式：output.text
+        if "text" in output:
+            raw_content = output.get("text")
+        # 尝试旧格式：output.choices[0].message.content
+        elif "choices" in output:
+            choices = output.get("choices") or []
+            if choices:
+                message = choices[0].get("message") or {}
+                raw_content = message.get("content")
     except Exception:  # noqa: BLE001
         raw_content = None
 
