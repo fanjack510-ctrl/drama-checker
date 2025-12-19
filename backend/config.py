@@ -8,7 +8,11 @@ from typing import Literal
 EngineType = Literal["rule", "llm"]
 
 # 从环境变量读取配置
-ENABLE_LLM = os.getenv("ENABLE_LLM", "false").lower() == "true"
+# 支持 ENABLE_LLM 和 LLM_ENABLED 两种环境变量名
+ENABLE_LLM = (
+    os.getenv("ENABLE_LLM", "").lower() == "true"
+    or os.getenv("LLM_ENABLED", "").lower() == "true"
+)
 # 支持 QWEN_API_KEY 和 LLM_API_KEY 两种环境变量名
 LLM_API_KEY = os.getenv("QWEN_API_KEY") or os.getenv("LLM_API_KEY", "")
 LLM_API_URL = os.getenv("LLM_API_URL", "")
