@@ -110,27 +110,31 @@ def score_by_llm(text: str) -> Optional[AnalyzeResponse]:
     # 1. output.text（新格式，直接包含 JSON 字符串）
     # 2. output.choices[0].message.content（旧格式）
     raw_content = None
-    try:
-        output = data.get("output") or {}
-        
-        # 优先尝试新格式：output.text
-        if "text" in output:
-            raw_content = output.get("text")
-        # 尝试旧格式：output.choices[0].message.content
-        elif "choices" in output:
+    output = data.get("output") or {}
+    
+    # 优先尝试新格式：output.text
+    if "text" in output and output.get("text"):
+        raw_content = output.get("text")
+        logger.info("从 output.text 获取内容成功")
+    # 尝试旧格式：output.choices[0].message.content
+    elif "choices" in output:
+        try:
             choices = output.get("choices") or []
             if choices:
                 message = choices[0].get("message") or {}
                 raw_content = message.get("content")
-    except Exception:  # noqa: BLE001
-        raw_content = None
+                if raw_content:
+                    logger.info("从 output.choices[0].message.content 获取内容成功")
+        except Exception as e:  # noqa: BLE001
+            logger.warning("解析 choices 结构时出错：%s", e)
 
     if not raw_content:
         # 有些情况下模型直接返回 JSON 对象
         if isinstance(data, dict) and {"score", "risk_level"} <= data.keys():
             raw_content = data
+            logger.info("从 data 根对象获取内容")
         else:
-            logger.error("通义千问响应中未找到 content 字段：%s", data)
+            logger.error("通义千问响应中未找到有效内容字段，output 结构：%s", output)
             return None
 
     # raw_content 可能是字符串形式的 JSON，也可能已经是 dict
