@@ -8,7 +8,7 @@ from typing import Literal
 EngineType = Literal["rule", "llm"]
 
 # 从环境变量读取配置
-# 支持 ENABLE_LLM 和 LLM_ENABLED 两种环境变量名
+# 支持 ENABLE_LLM 和 LLM_ENABLED 两种环境变量名（兼容 Render 部署）
 ENABLE_LLM = (
     os.getenv("ENABLE_LLM", "").lower() == "true"
     or os.getenv("LLM_ENABLED", "").lower() == "true"
