@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>剧情短视频体检器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #ffffff;
+            color: #1a1a1a;
+            line-height: 1.6;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #666;
+        }
+
+        .input-section {
+            margin-bottom: 24px;
+        }
+
+        .textarea-wrapper {
+            position: relative;
+        }
+
+        textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 16px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            background-color: #fafafa;
+            color: #1a1a1a;
+            transition: border-color 0.2s, background-color 0.2s;
+        }
+
+        textarea:focus {
+            outline: none;
+            border-color: #1a1a1a;
+            background-color: #ffffff;
+        }
+
+        textarea:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        textarea::placeholder {
+            color: #999;
+        }
+
+        .word-count {
+            text-align: right;
+            font-size: 13px;
+            color: #999;
+            margin-top: 8px;
+        }
+
+        .action-section {
+            margin-bottom: 24px;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px 24px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s, opacity 0.2s;
+        }
+
+        .btn:hover:not(:disabled) {
+            background-color: #333;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .btn.loading {
+            position: relative;
+            color: transparent;
+        }
+
+        .btn.loading::after {
+            content: "体检中…";
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #ffffff;
+        }
+
+        .btn-secondary {
+            background-color: #f5f5f5;
+            color: #1a1a1a;
+            margin-top: 12px;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: #e0e0e0;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .result-section {
+            display: none;
+            margin-top: 32px;
+        }
+
+        .result-section.show {
+            display: block;
+        }
+
+        .result-card {
+            background-color: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 24px;
+        }
+
+        .score-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .score-display {
+            display: flex;
+            align-items: baseline;
+            gap: 12px;
+        }
+
+        .score-number {
+            font-size: 48px;
+            font-weight: 700;
+            color: #1a1a1a;
+        }
+
+        .score-total {
+            font-size: 24px;
+            color: #666;
+        }
+
+        .risk-badge {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .risk-badge.safe {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .risk-badge.warning {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .risk-badge.danger {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .issues-section {
+            margin-bottom: 24px;
+        }
+
+        .issues-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #1a1a1a;
+        }
+
+        .issue-list {
+            list-style: none;
+        }
+
+        .issue-item {
+            background-color: #ffffff;
+            border-left: 4px solid #e0e0e0;
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 4px;
+        }
+
+        .issue-item.high-risk {
+            border-left-color: #dc3545;
+        }
+
+        .issue-item.medium-risk {
+            border-left-color: #ffc107;
+        }
+
+        .issue-text {
+            margin-bottom: 8px;
+            line-height: 1.6;
+        }
+
+        .evidence-chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 8px;
+        }
+
+        .evidence-chip {
+            display: inline-block;
+            padding: 4px 10px;
+            background-color: #f0f0f0;
+            border-radius: 12px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .evidence-chip::before {
+            content: "「";
+            color: #999;
+        }
+
+        .evidence-chip::after {
+            content: "」";
+            color: #999;
+        }
+
+        .info-card {
+            background-color: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+
+        .info-card-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 8px;
+        }
+
+        .info-card-content {
+            font-size: 15px;
+            color: #1a1a1a;
+            line-height: 1.6;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-top: 24px;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            width: auto;
+        }
+
+        .debug-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .debug-toggle {
+            background: none;
+            border: none;
+            color: #666;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 8px 0;
+            margin-bottom: 12px;
+            text-decoration: underline;
+        }
+
+        .debug-toggle:hover {
+            color: #1a1a1a;
+        }
+
+        .debug-content {
+            display: none;
+            background-color: #f8f8f8;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            overflow-x: auto;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .debug-content.show {
+            display: block;
+        }
+
+        .error-message {
+            background-color: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 8px;
+            padding: 12px 16px;
+            color: #856404;
+            font-size: 14px;
+            margin-bottom: 16px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .error-message.error {
+            background-color: #f8d7da;
+            border-color: #dc3545;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>剧情短视频体检器</h1>
+            <p>不帮你写，只告诉你会不会被划走</p>
+        </div>
+
+        <div class="input-section">
+            <div class="textarea-wrapper">
+                <textarea 
+                    id="scriptInput" 
+                    placeholder="请粘贴你的剧情/情绪类短视频脚本（30–90 秒）"
+                ></textarea>
+            </div>
+            <div class="word-count">
+                <span id="wordCount">0</span> 字
+            </div>
+        </div>
+
+        <div class="action-section">
+            <div class="error-message" id="errorMessage"></div>
+            <button class="btn" id="analyzeBtn">开始体检</button>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <div class="result-card">
+                <div id="resultContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // API 配置
+        // ============================================
+        // 部署说明：
+        // 1. 开发环境：使用 '/api/analyze'（相对路径，需要代理）
+        // 2. 生产环境：替换为 Railway 提供的公网地址，例如：
+        //    const API_BASE_URL = 'https://your-app.railway.app';
+        // 3. 当前阶段可以先硬编码测试
+        // ============================================
+        const API_BASE_URL = ''; // 留空使用相对路径，或填入完整后端地址如 'https://your-app.railway.app'
+        
+        const scriptInput = document.getElementById('scriptInput');
+        const wordCount = document.getElementById('wordCount');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultSection = document.getElementById('resultSection');
+        const resultContent = document.getElementById('resultContent');
+
+        let currentResult = null;
+
+        // 字数统计
+        function updateWordCount() {
+            const text = scriptInput.value;
+            wordCount.textContent = text.length;
+        }
+
+        scriptInput.addEventListener('input', updateWordCount);
+
+        // 显示错误信息
+        function showError(message, isError = false) {
+            errorMessage.textContent = message;
+            errorMessage.className = 'error-message show' + (isError ? ' error' : '');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        // 设置按钮和输入框状态
+        function setLoadingState(loading) {
+            if (loading) {
+                analyzeBtn.disabled = true;
+                analyzeBtn.classList.add('loading');
+                scriptInput.disabled = true;
+            } else {
+                analyzeBtn.disabled = false;
+                analyzeBtn.classList.remove('loading');
+                scriptInput.disabled = false;
+            }
+        }
+
+        // 带超时的 fetch
+        async function fetchWithTimeout(url, options, timeout = 10000) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+            try {
+                const response = await fetch(url, {
+                    ...options,
+                    signal: controller.signal
+                });
+                clearTimeout(timeoutId);
+                return response;
+            } catch (error) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    throw new Error('请求超时，请稍后重试');
+                }
+                throw error;
+            }
+        }
+
+        // 调用 API 分析脚本
+        async function analyzeScript(text) {
+            try {
+                // 构建 API 地址：如果配置了 API_BASE_URL 则使用，否则使用相对路径
+                const apiUrl = API_BASE_URL ? `${API_BASE_URL}/api/analyze` : '/api/analyze';
+                const response = await fetchWithTimeout(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        text: text,
+                        mode: 'drama_emotion'
+                    })
+                }, 10000);
+
+                if (!response.ok) {
+                    if (response.status === 500) {
+                        throw new Error('服务器错误，请稍后重试');
+                    }
+                    const errorText = await response.text();
+                    throw new Error(`请求失败: ${response.status} ${errorText}`);
+                }
+
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                if (error.message.includes('超时')) {
+                    throw new Error('请求超时，请稍后重试');
+                } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+                    throw new Error('网络连接失败，请检查网络设置');
+                }
+                throw error;
+            }
+        }
+
+        // 获取风险等级样式类
+        function getRiskClass(riskLevel) {
+            if (riskLevel === '安全' || riskLevel === 'safe') {
+                return 'safe';
+            } else if (riskLevel === '⚠️ 容易被划走' || riskLevel === 'warning') {
+                return 'warning';
+            } else if (riskLevel === '❌ 明显无聊' || riskLevel === 'danger') {
+                return 'danger';
+            }
+            return 'warning';
+        }
+
+        // 渲染结构化结果
+        function renderResult(data) {
+            const riskLevel = data.risk_level || data.overallJudgment || '一般';
+            const score = data.score || data.totalScore || 0;
+            const highRiskIssues = data.high_risk_issues || data.issues?.filter(i => i.level === 'high') || [];
+            const mediumRiskIssues = data.medium_risk_issues || data.issues?.filter(i => i.level === 'medium') || [];
+            const evidence = data.evidence || [];
+            const riskPositions = data.risk_positions || data.riskPositions || [];
+            const audienceReaction = data.audience_reaction || data.audienceReaction || '';
+            const optimizationDirections = data.optimization_directions || data.optimizationDirections || [];
+
+            let html = `
+                <div class="score-header">
+                    <div class="score-display">
+                        <span class="score-number">${score}</span>
+                        <span class="score-total">/ 100</span>
+                    </div>
+                    <span class="risk-badge ${getRiskClass(riskLevel)}">${riskLevel}</span>
+                </div>
+            `;
+
+            // 高风险问题
+            if (highRiskIssues.length > 0) {
+                html += `
+                    <div class="issues-section">
+                        <div class="issues-title">🔴 高风险问题</div>
+                        <ul class="issue-list">
+                `;
+                highRiskIssues.forEach(issue => {
+                    const issueText = typeof issue === 'string' ? issue : (issue.text || issue.description || issue);
+                    const relatedEvidence = evidence.filter(e => {
+                        if (typeof issue === 'object' && issue.evidence) {
+                            return issue.evidence.includes(e.text);
+                        }
+                        return false;
+                    }).slice(0, 2);
+
+                    html += `
+                        <li class="issue-item high-risk">
+                            <div class="issue-text">${issueText}</div>
+                            ${relatedEvidence.length > 0 ? `
+                                <div class="evidence-chips">
+                                    ${relatedEvidence.map(e => `<span class="evidence-chip">${e.text}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                        </li>
+                    `;
+                });
+                html += `
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // 可优化问题
+            if (mediumRiskIssues.length > 0) {
+                html += `
+                    <div class="issues-section">
+                        <div class="issues-title">🟡 可优化问题</div>
+                        <ul class="issue-list">
+                `;
+                mediumRiskIssues.forEach(issue => {
+                    const issueText = typeof issue === 'string' ? issue : (issue.text || issue.description || issue);
+                    const relatedEvidence = evidence.filter(e => {
+                        if (typeof issue === 'object' && issue.evidence) {
+                            return issue.evidence.includes(e.text);
+                        }
+                        return false;
+                    }).slice(0, 2);
+
+                    html += `
+                        <li class="issue-item medium-risk">
+                            <div class="issue-text">${issueText}</div>
+                            ${relatedEvidence.length > 0 ? `
+                                <div class="evidence-chips">
+                                    ${relatedEvidence.map(e => `<span class="evidence-chip">${e.text}</span>`).join('')}
+                                </div>
+                            ` : ''}
+                        </li>
+                    `;
+                });
+                html += `
+                        </ul>
+                    </div>
+                `;
+            }
+
+            // 最危险位置
+            if (riskPositions.length > 0) {
+                html += `
+                    <div class="info-card">
+                        <div class="info-card-title">📍 最容易被划走的位置</div>
+                        <div class="info-card-content">
+                            ${riskPositions.map(rp => {
+                                const pos = typeof rp === 'string' ? rp : (rp.position || rp);
+                                const desc = typeof rp === 'object' ? (rp.description || '') : '';
+                                return desc ? `${pos}：${desc}` : pos;
+                            }).join('<br>')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 观众可能反应
+            if (audienceReaction) {
+                html += `
+                    <div class="info-card">
+                        <div class="info-card-title">💡 观众可能的真实反应</div>
+                        <div class="info-card-content">${audienceReaction}</div>
+                    </div>
+                `;
+            }
+
+            // 优化方向
+            if (optimizationDirections.length > 0) {
+                html += `
+                    <div class="info-card">
+                        <div class="info-card-title">🎯 总体优化方向</div>
+                        <div class="info-card-content">
+                            ${optimizationDirections.map(dir => `• ${dir}`).join('<br>')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 操作按钮
+            html += `
+                <div class="action-buttons">
+                    <button class="btn btn-secondary" id="copyReportBtn">复制体检报告</button>
+                    <button class="btn btn-secondary" id="exportJsonBtn">导出 JSON</button>
+                </div>
+            `;
+
+            // 调试区
+            html += `
+                <div class="debug-section">
+                    <button class="debug-toggle" id="debugToggle">展开原始 JSON</button>
+                    <div class="debug-content" id="debugContent"></div>
+                </div>
+            `;
+
+            resultContent.innerHTML = html;
+
+            // 设置调试区内容
+            const debugContent = document.getElementById('debugContent');
+            if (debugContent) {
+                debugContent.textContent = JSON.stringify(data, null, 2);
+            }
+
+            // 绑定调试切换
+            const debugToggle = document.getElementById('debugToggle');
+            if (debugToggle) {
+                debugToggle.addEventListener('click', () => {
+                    const isShowing = debugContent.classList.contains('show');
+                    debugContent.classList.toggle('show');
+                    debugToggle.textContent = isShowing ? '展开原始 JSON' : '收起原始 JSON';
+                });
+            }
+
+            // 绑定复制报告按钮
+            const copyReportBtn = document.getElementById('copyReportBtn');
+            if (copyReportBtn) {
+                copyReportBtn.addEventListener('click', () => {
+                    const reportText = formatReportText(data);
+                    navigator.clipboard.writeText(reportText).then(() => {
+                        const originalText = copyReportBtn.textContent;
+                        copyReportBtn.textContent = '已复制！';
+                        setTimeout(() => {
+                            copyReportBtn.textContent = originalText;
+                        }, 2000);
+                    }).catch(() => {
+                        showError('复制失败，请手动复制', true);
+                    });
+                });
+            }
+
+            // 绑定导出 JSON 按钮
+            const exportJsonBtn = document.getElementById('exportJsonBtn');
+            if (exportJsonBtn) {
+                exportJsonBtn.addEventListener('click', () => {
+                    const jsonStr = JSON.stringify(data, null, 2);
+                    const blob = new Blob([jsonStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = 'analyze_result.json';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                });
+            }
+        }
+
+        // 格式化报告文本
+        function formatReportText(data) {
+            const riskLevel = data.risk_level || data.overallJudgment || '一般';
+            const score = data.score || data.totalScore || 0;
+            const highRiskIssues = data.high_risk_issues || data.issues?.filter(i => i.level === 'high') || [];
+            const mediumRiskIssues = data.medium_risk_issues || data.issues?.filter(i => i.level === 'medium') || [];
+            const riskPositions = data.risk_positions || data.riskPositions || [];
+            const audienceReaction = data.audience_reaction || data.audienceReaction || '';
+            const optimizationDirections = data.optimization_directions || data.optimizationDirections || [];
+
+            let text = `🎬 剧情短视频体检报告\n\n`;
+            text += `综合评分：${score} / 100\n`;
+            text += `整体判断：${riskLevel}\n\n`;
+
+            if (highRiskIssues.length > 0) {
+                text += `🔴 高风险问题\n`;
+                highRiskIssues.forEach(issue => {
+                    const issueText = typeof issue === 'string' ? issue : (issue.text || issue.description || issue);
+                    text += `- ${issueText}\n`;
+                });
+                text += `\n`;
+            }
+
+            if (mediumRiskIssues.length > 0) {
+                text += `🟡 可优化问题\n`;
+                mediumRiskIssues.forEach(issue => {
+                    const issueText = typeof issue === 'string' ? issue : (issue.text || issue.description || issue);
+                    text += `- ${issueText}\n`;
+                });
+                text += `\n`;
+            }
+
+            if (riskPositions.length > 0) {
+                text += `📍 最容易被划走的位置\n`;
+                riskPositions.forEach(rp => {
+                    const pos = typeof rp === 'string' ? rp : (rp.position || rp);
+                    const desc = typeof rp === 'object' ? (rp.description || '') : '';
+                    text += `- ${desc ? `${pos}：${desc}` : pos}\n`;
+                });
+                text += `\n`;
+            }
+
+            if (audienceReaction) {
+                text += `💡 观众可能的真实反应\n`;
+                text += `${audienceReaction}\n\n`;
+            }
+
+            if (optimizationDirections.length > 0) {
+                text += `🎯 总体优化方向\n`;
+                optimizationDirections.forEach(dir => {
+                    text += `- ${dir}\n`;
+                });
+            }
+
+            return text;
+        }
+
+        // 点击分析按钮
+        analyzeBtn.addEventListener('click', async () => {
+            const scriptText = scriptInput.value.trim();
+
+            // 验证输入
+            if (!scriptText) {
+                showError('请先输入脚本内容');
+                return;
+            }
+
+            // 设置 loading 状态
+            setLoadingState(true);
+            resultSection.classList.remove('show');
+            errorMessage.classList.remove('show');
+
+            try {
+                // 调用 API
+                const result = await analyzeScript(scriptText);
+                currentResult = result;
+
+                // 渲染结果
+                renderResult(result);
+                resultSection.classList.add('show');
+            } catch (error) {
+                let errorMsg = '分析失败，请稍后重试';
+                if (error.message) {
+                    errorMsg = error.message;
+                }
+                showError(errorMsg, true);
+                console.error('分析错误:', error);
+            } finally {
+                // 恢复按钮状态
+                setLoadingState(false);
+            }
+        });
+    </script>
+</body>
+</html>
